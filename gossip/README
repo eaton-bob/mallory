@@ -1,0 +1,6 @@
+simple example to play with gossip protocol
+
+run ./gs SRV1
+run ./gc CL1
+
+and see what's happening ...
