@@ -1,0 +1,2 @@
+rm -f generator
+gcc -std=c++11 -lstdc++ -lczmq -lmlm generator.cc -o generator
