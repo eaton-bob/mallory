@@ -20,9 +20,9 @@ int main(int argc, char** argv)
     zsys_info ("connected succesfully to malamute");
 
     char *statuses[3];
-    statuses[0] = strdup("new");
-    statuses[1] = strdup("ack");
-    statuses[2] = strdup("resolved");
+    statuses[0] = strdup("NEW");
+    statuses[1] = strdup("ACK");
+    statuses[2] = strdup("RESOLVED");
 
     // 1)  need to get list of UUID of alerts
 
@@ -57,14 +57,15 @@ int main(int argc, char** argv)
     }
 
     // we would play with status changing only for first alert
-    char *alert_name = (char *) zhashx_first (alerts);
-    char *alert_status = (char *) zhashx_cursor (alerts);
+    char *alert_status = (char *) zhashx_first (alerts);
+    char *alert_name = (char *) zhashx_cursor (alerts);
     while ( !zsys_interrupted )
     {
         // randomly select new status
         int status_number = random() % 3;
         // create message
         pubmsg = zmsg_new();
+        zmsg_addstr(pubmsg, alert_name);
         zmsg_addstr(pubmsg, statuses[status_number]);
         mlm_client_sendto(client, "ALERT", alert_name, NULL, 5000, &pubmsg);
         // we are not going to spam :)
