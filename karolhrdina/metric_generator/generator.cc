@@ -4,7 +4,7 @@
 #include <unistd.h>
 
 #define USAGE "<mlm_endpoint> <gen_name> <metric_name> <range>"
-#define STREAM_NAME "METRIC"
+#define STREAM_NAME "METRICS"
 #define FREQ 5
 
 //  Provide random number from 0..(num-1)
