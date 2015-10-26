@@ -1,11 +1,10 @@
 #include <malamute.h>
 #include <string>
+#include "../streams.h"
 
 // TODO: <mlm_endpoint> <zconfing>
 //       we have simple hardcoded rules now
 #define USAGE "<mlm_endpoint>"
-#define METRICS_STREAM "METRICS"
-#define EVALS_STREAM "EVALS"
 
 int main (int argc, char **argv) {
     if (argc < 2) {
@@ -21,7 +20,7 @@ int main (int argc, char **argv) {
     int rv = mlm_client_connect (client, argv[1], 1000, argv[0]);
     assert (rv != -1);
 
-    rv = mlm_client_set_consumer (client, METRICS_STREAM, "");
+    rv = mlm_client_set_consumer (client, METRICS_STREAM, ".*");
     assert (rv != -1);
     rv = mlm_client_set_producer(client, EVALS_STREAM);
     assert (rv != -1);
@@ -37,9 +36,8 @@ int main (int argc, char **argv) {
         const char *subject = mlm_client_subject (client);
         char *metric_name = zmsg_popstr (msg);
         char *metric_value = zmsg_popstr (msg);
-        zmsg_destroy (&msg); 
-
         assert (metric_name); assert (metric_value);
+        zmsg_destroy (&msg); 
         // TODO: checks (stoi, char * nullity ...)
         uint64_t value = std::stoi (metric_value);
         // hardcoded rule for temp > 10

@@ -1,11 +1,12 @@
 #include <malamute.h>
 #include <string>
+#include "../streams.h"
 
 #define USAGE "<mlm_endpoint> <function>"
 #define STREAM_NAME "ALERTS"
 
 int main (int argc, char **argv) {
-    if (argc < 2) {
+    if (argc < 3) {
         zsys_error ("Usage: %s %s", argv[0], USAGE);
         return EXIT_FAILURE;
     }
@@ -23,7 +24,7 @@ int main (int argc, char **argv) {
     int rv = mlm_client_connect (client, argv[1], 1000, client_name.c_str ());
     assert (rv != -1);
 
-    rv = mlm_client_set_consumer (client, STREAM_NAME, "");
+    rv = mlm_client_set_consumer (client, ALERTS_STREAM, ".*");
     assert (rv != -1);
 
 
@@ -37,6 +38,7 @@ int main (int argc, char **argv) {
         }
         char *alert_name = zmsg_popstr (msg);
         char *device_name = zmsg_popstr (msg);
+        assert (alert_name); assert (device_name);
         if (!alert_name || !device_name) {
             zsys_error ("Wrong message format recevied. Subject: '%s'\tSender: '%s'",
                    mlm_client_subject (client), mlm_client_sender (client));
@@ -44,6 +46,7 @@ int main (int argc, char **argv) {
             continue;
         }
         zsys_info ("Sending alert '%s' from device '%s' using '%s'.", alert_name, device_name, function);
+        free (alert_name); free (device_name);
         zmsg_destroy (&msg);
     }
 
