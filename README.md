@@ -9,7 +9,7 @@ Evaluate whether to send alert based on 1 .. N measurements.
 **.Note:** For PoC it is enough if the rules/measurements are hardcoded.
 
 ### Problem 2:
-Manage the state of alert. 
+Manage the state of alert.
 
 **.Bonus points:** Persist acknowledged alerts.
 
