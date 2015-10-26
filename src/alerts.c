@@ -52,6 +52,9 @@ s_alerts (
         alert_state = zmsg_popstr (msg);
 
         zsys_info ("%s: Alert '%s' new state is '%s'", name, alert_subject, alert_state);
+
+        //ACK
+        mlm_client_sendtox (cl, mlm_client_sender (cl), alert_subject, alert_subject, "ACK");
         zstr_free (&alert_subject);
 msg_destroy:
         zmsg_destroy (&msg);
