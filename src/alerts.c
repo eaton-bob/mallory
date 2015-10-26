@@ -51,7 +51,6 @@ s_alerts (
     zpoller_t *poller = zpoller_new (pipe, msgpipe, NULL);
 
     zhashx_t *alerts = zhashx_new ();
-    zhashx_set_destructor (alerts, (zhashx_destructor_fn *) zstr_free);
 
     //bootstrap the alerts
     zhashx_insert (alerts, "upsonbattery@UPS1", "NEW");
@@ -81,7 +80,6 @@ s_alerts (
             zsys_debug ("(%s): got command LIST", name);
 
             zmsg_t *msg = zmsg_new ();
-            zmsg_addstr (msg, "LIST");
             zframe_t *frame = zhashx_pack (alerts);
             zmsg_append (msg, &frame);
             mlm_client_sendto (cl, mlm_client_sender (cl), "LIST", NULL, 5000, &msg);
