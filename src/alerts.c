@@ -43,7 +43,7 @@ s_alerts (
     const char *name = "ALERT";
 
     mlm_client_t *cl = mlm_client_new ();
-    mlm_client_connect (cl, endpoint, 5000, __PRETTY_FUNCTION__);
+    mlm_client_connect (cl, endpoint, 5000, name);
     mlm_client_set_producer (cl, stream);
 
     zsock_t *msgpipe = mlm_client_msgpipe (cl);
