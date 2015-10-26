@@ -3,6 +3,7 @@ generator
 consumer
 rules
 alert
+user
 
 # Object files
 *.o
