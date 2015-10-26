@@ -2,7 +2,7 @@
 #include <stdlib.h>
 
 static const char *stream = "ALERTS";
-static const char *endpoint = "ipc://@/alerts";
+static const char *endpoint = "ipc://@/malamute";
 
 static void
 s_pub_alert (
@@ -11,16 +11,26 @@ s_pub_alert (
         zhashx_t *alerts) {
 
     int idx = random() % zhashx_size (alerts);
-    char *alert_state = zhashx_first (alerts);
+    //XXX : solve it better
+    char *alert_state = strdup (zhashx_first (alerts));
 
     for (int i = 0; i != idx; i++) {
         alert_state = zhashx_next (alerts);
     }
 
-    const char *alert_subject = zhashx_cursor (alerts);
+    //XXX : solve it better
+    char *alert_subject = strdup (zhashx_cursor (alerts));
+    //XXX : solve it better
+    char *subject = strdup (alert_subject);
 
     zsys_debug ("(%s): PUB ALERT: %s/%s", name, alert_subject, alert_state);
-    mlm_client_sendx (cl, alert_subject, alert_subject, alert_state, NULL);
+    mlm_client_sendx (cl, subject, alert_subject, alert_state, NULL);
+
+    /*
+    zstr_free (&alert_subject);
+    zstr_free (&subject);
+    zstr_free (&alert_state);
+    */
 }
 
 /*
@@ -43,7 +53,7 @@ s_alerts (
     const char *name = "ALERT";
 
     mlm_client_t *cl = mlm_client_new ();
-    mlm_client_connect (cl, endpoint, 5000, __PRETTY_FUNCTION__);
+    mlm_client_connect (cl, endpoint, 5000, name);
     mlm_client_set_producer (cl, stream);
 
     zsock_t *msgpipe = mlm_client_msgpipe (cl);
@@ -51,7 +61,6 @@ s_alerts (
     zpoller_t *poller = zpoller_new (pipe, msgpipe, NULL);
 
     zhashx_t *alerts = zhashx_new ();
-    zhashx_set_destructor (alerts, (zhashx_destructor_fn *) zstr_free);
 
     //bootstrap the alerts
     zhashx_insert (alerts, "upsonbattery@UPS1", "NEW");
@@ -72,35 +81,50 @@ s_alerts (
 
         //which == msgpipe
         zmsg_t *msg = mlm_client_recv (cl);
+        zsys_debug ("received smthng on malamute");
         if (!streq (mlm_client_command (cl), "MAILBOX DELIVER"))
             goto msg_destroy;
 
-        char *alert_subject = zmsg_popstr (msg);
-
         //LIST
-        if (streq (alert_subject, "LIST")) {
+        if (streq (mlm_client_subject (cl), "LIST")) {
             zsys_debug ("(%s): got command LIST", name);
 
             zmsg_t *msg = zmsg_new ();
-            zmsg_addstr (msg, "LIST");
             zframe_t *frame = zhashx_pack (alerts);
             zmsg_append (msg, &frame);
             mlm_client_sendto (cl, mlm_client_sender (cl), "LIST", NULL, 5000, &msg);
-            goto alert_subject_destroy;
+            goto msg_destroy;
         }
+
+        char *alert_subject = zmsg_popstr (msg);
+        if ( alert_subject == NULL )
+        {
+            zsys_info ("malformed message, ignore it, missing alert_subject");
+            goto msg_destroy;
+        }
+        zsys_debug ("alert_subject: %s", alert_subject);
 
         // others
         char *alert_state = zmsg_popstr (msg);
+        if ( alert_state == NULL )
+        {
+            zsys_info ("malformed message, ignore it, missing alert_state");
+            goto msg_destroy;
+        }
         zsys_debug ("(%s): Alert '%s' new state is '%s'", name, alert_subject, alert_state);
 
-        zhashx_update (alerts, alert_subject, alert_state);
+        //XXX: solve it better
+        zhashx_update (alerts, alert_subject, strdup(alert_state));
+        zsys_info ("jsem tu");
+
         //ACK
         mlm_client_sendtox (cl, mlm_client_sender (cl), alert_subject, alert_subject, "ACK");
-        zstr_free (&alert_state);
-alert_subject_destroy:
-        zstr_free (&alert_subject);
+        zsys_info ("jsem tu1");
+        //zstr_free (&alert_state);
+        //zstr_free (&alert_subject);
 msg_destroy:
         zmsg_destroy (&msg);
+        zsys_info ("jsem tu2");
     }
 
     zhashx_destroy (&alerts);

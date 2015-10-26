@@ -7,6 +7,8 @@ extern "C" {
 #include <vector>
 #include <string>
 #include <map>
+#include <iostream>
+#include <fstream>
 #include <cxxtools/jsondeserializer.h>
 
 #include "agents.h"
@@ -14,24 +16,30 @@ extern "C" {
 
 std::map<std::string, double> cache;
 
+struct config {
+  std::vector<std::string> in;
+  std::string lua_code;
+  std::string out;
+};
+
 int main (int argc, char** argv) {
   char buff[256];
   int error;
-  std::string lua_code;
+  config cfg;
 
   bios_agent_t *client = bios_agent_new("ipc://@/malamute", argv[0]);
 
   // Read configuration
-  cxxtools::JsonDeserializer json(std::cin);
+  std::ifstream f("conf.json");
+  cxxtools::JsonDeserializer json(f);
   json.deserialize();
   const cxxtools::SerializationInfo *si = json.si();
-  si->getMember("evaluation") >>= lua_code;
-  std::vector<std::string> in;
-  si->getMember("in") >>= in;
-  std::string out;
-  si->getMember("out") >>= out;
+  si->getMember("evaluation") >>= cfg.lua_code;
+  si->getMember("in") >>= cfg.in;
+  si->getMember("out") >>= cfg.out;
+
   // Subscribe to all streams
-  for(auto it : in) {
+  for(auto it : cfg.in) {
     bios_agent_set_consumer(client, bios_get_stream_measurements(), it.c_str());
     printf("Registered to receive '%s'\n", it.c_str());
   }
@@ -55,7 +63,7 @@ int main (int argc, char** argv) {
     ymsg_destroy(&yn);
 
     // Do we have everything?
-    if(cache.size() != in.size())
+    if(cache.size() != cfg.in.size())
       continue;
 
     // Compute
@@ -67,11 +75,11 @@ int main (int argc, char** argv) {
       lua_pushnumber(L, it.second);
       lua_setglobal(L, var.c_str());
     }
-    error = luaL_loadbuffer(L, lua_code.c_str(), lua_code.length(), "line") ||
+    error = luaL_loadbuffer(L, cfg.lua_code.c_str(), cfg.lua_code.length(), "line") ||
             lua_pcall(L, 0, 2, 0);
 
     if(lua_isnumber(L, -1))
-        fprintf(stdout, "ALERT (%s = %lf), %s\n", out.c_str(), lua_tonumber(L, -1), lua_tostring(L, -2));
+        fprintf(stdout, "ALERT (%s = %lf), %s\n", cfg.out.c_str(), lua_tonumber(L, -1), lua_tostring(L, -2));
     if (error) {
       fprintf(stderr, "%s", lua_tostring(L, -1));
       lua_pop(L, 1);  /* pop error message from the stack */
