@@ -1,0 +1,5 @@
+{
+  "in": [ "test_b@test" ],
+  "evaluation": "if(test_b_test > 5) then return \"B too high\", test_b_test end",
+  "out": "test"
+}
