@@ -11,16 +11,26 @@ s_pub_alert (
         zhashx_t *alerts) {
 
     int idx = random() % zhashx_size (alerts);
-    char *alert_state = zhashx_first (alerts);
+    //XXX : solve it better
+    char *alert_state = strdup (zhashx_first (alerts));
 
     for (int i = 0; i != idx; i++) {
         alert_state = zhashx_next (alerts);
     }
 
-    const char *alert_subject = zhashx_cursor (alerts);
+    //XXX : solve it better
+    char *alert_subject = strdup (zhashx_cursor (alerts));
+    //XXX : solve it better
+    char *subject = strdup (alert_subject);
 
     zsys_debug ("(%s): PUB ALERT: %s/%s", name, alert_subject, alert_state);
-    mlm_client_sendx (cl, alert_subject, alert_subject, alert_state, NULL);
+    mlm_client_sendx (cl, subject, alert_subject, alert_state, NULL);
+
+    /*
+    zstr_free (&alert_subject);
+    zstr_free (&subject);
+    zstr_free (&alert_state);
+    */
 }
 
 /*
@@ -103,8 +113,10 @@ s_alerts (
         }
         zsys_debug ("(%s): Alert '%s' new state is '%s'", name, alert_subject, alert_state);
 
-        zhashx_update (alerts, alert_subject, alert_state);
+        //XXX: solve it better
+        zhashx_update (alerts, alert_subject, strdup(alert_state));
         zsys_info ("jsem tu");
+
         //ACK
         mlm_client_sendtox (cl, mlm_client_sender (cl), alert_subject, alert_subject, "ACK");
         zsys_info ("jsem tu1");
