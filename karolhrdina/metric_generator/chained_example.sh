@@ -3,10 +3,10 @@
 # one metric using the simple 'generator' binary.
 
 WAITPID=""
-./generator ipc://@/malamute "ups-9" "temp" "80" &
+./generator ipc://@/malamute "ups-9" "temp" "100" &
 WAITPID+="$! "
 
-./generator ipc://@/malamute "ups-9" "hum" "50" &
+./generator ipc://@/malamute "ups-9" "hum" "100" &
 WAITPID+="$! "
 
 ./generator ipc://@/malamute "ups-9" "load" "100" &

@@ -41,11 +41,23 @@ int main (int argc, char **argv) {
         // TODO: checks (stoi, char * nullity ...)
         uint64_t value = std::stoi (metric_value);
         // hardcoded rule for temp > 10
-        if (streq (metric_name, "temp") && value > 10) {
+        if (streq (metric_name, "temp") && value > 70) {
             msg = zmsg_new ();
             zmsg_addstr (msg, "ONFIRE");
             zmsg_addstr (msg, subject);
             std::string send_subj ("ONFIRE");
+            send_subj.append ("@").append (subject);
+            if (mlm_client_send (client, send_subj.c_str (), &msg) != 0)
+                zsys_error ("mlm_client_send (subject = '%s') failed.", send_subj.c_str ());
+            else
+                zsys_info ("TRIGGER subject='%s'", send_subj.c_str ());
+        }
+        else if (streq (metric_name, "hum") && value > 50) {
+            // temporary copy-paste
+            msg = zmsg_new ();
+            zmsg_addstr (msg, "CORROSION");
+            zmsg_addstr (msg, subject);
+            std::string send_subj ("CORROSION");
             send_subj.append ("@").append (subject);
             if (mlm_client_send (client, send_subj.c_str (), &msg) != 0)
                 zsys_error ("mlm_client_send (subject = '%s') failed.", send_subj.c_str ());

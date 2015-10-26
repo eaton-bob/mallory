@@ -39,12 +39,6 @@ int main (int argc, char **argv) {
         char *alert_name = zmsg_popstr (msg);
         char *device_name = zmsg_popstr (msg);
         assert (alert_name); assert (device_name);
-        if (!alert_name || !device_name) {
-            zsys_error ("Wrong message format recevied. Subject: '%s'\tSender: '%s'",
-                   mlm_client_subject (client), mlm_client_sender (client));
-            zmsg_destroy (&msg);
-            continue;
-        }
         zsys_info ("Sending alert '%s' from device '%s' using '%s'.", alert_name, device_name, function);
         free (alert_name); free (device_name);
         zmsg_destroy (&msg);

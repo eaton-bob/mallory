@@ -1,0 +1,2 @@
+rm -f user
+gcc -std=c++11 -lstdc++ -lczmq -lmlm ui.cc -o user
