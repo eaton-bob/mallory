@@ -1,7 +1,27 @@
 #include <malamute.h>
+#include <stdlib.h>
 
 static const char *stream = "ALERTS";
-static const char *endpoint = "ipc://@/alerts";
+static const char *endpoint = "ipc://@/malamute";
+
+static void
+s_pub_alert (
+        const char* name,
+        mlm_client_t *cl,
+        zhashx_t *alerts) {
+
+    int idx = random() % zhashx_size (alerts);
+    char *alert_state = zhashx_first (alerts);
+
+    for (int i = 0; i != idx; i++) {
+        alert_state = zhashx_next (alerts);
+    }
+
+    const char *alert_subject = zhashx_cursor (alerts);
+
+    zsys_debug ("(%s): PUB ALERT: %s/%s", name, alert_subject, alert_state);
+    mlm_client_sendx (cl, alert_subject, alert_subject, alert_state, NULL);
+}
 
 /*
  * msg1: REQ alert_subject/state
@@ -23,7 +43,7 @@ s_alerts (
     const char *name = "ALERT";
 
     mlm_client_t *cl = mlm_client_new ();
-    mlm_client_connect (cl, endpoint, 5000, __PRETTY_FUNCTION__);
+    mlm_client_connect (cl, endpoint, 5000, name);
     mlm_client_set_producer (cl, stream);
 
     zsock_t *msgpipe = mlm_client_msgpipe (cl);
@@ -43,7 +63,7 @@ s_alerts (
         zsock_t *which = zpoller_wait (poller, 1000);
 
         if (!which) {
-            mlm_client_sendx (cl, "upsonbattery@UPS1", zhashx_lookup (alerts, "upsonbattery@UPS1"), NULL);
+            s_pub_alert (name, cl, alerts);
             continue;
         }
 
@@ -52,6 +72,7 @@ s_alerts (
 
         //which == msgpipe
         zmsg_t *msg = mlm_client_recv (cl);
+        zsys_debug ("received smthng on malamute");
         if (!streq (mlm_client_command (cl), "MAILBOX DELIVER"))
             goto msg_destroy;
 
@@ -59,6 +80,8 @@ s_alerts (
 
         //LIST
         if (streq (alert_subject, "LIST")) {
+            zsys_debug ("(%s): got command LIST", name);
+
             zmsg_t *msg = zmsg_new ();
             zmsg_addstr (msg, "LIST");
             zframe_t *frame = zhashx_pack (alerts);
@@ -69,7 +92,7 @@ s_alerts (
 
         // others
         char *alert_state = zmsg_popstr (msg);
-        zsys_info ("%s: Alert '%s' new state is '%s'", name, alert_subject, alert_state);
+        zsys_debug ("(%s): Alert '%s' new state is '%s'", name, alert_subject, alert_state);
 
         zhashx_update (alerts, alert_subject, alert_state);
         //ACK

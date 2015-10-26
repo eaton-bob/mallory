@@ -32,6 +32,7 @@ int main(int argc, char** argv)
     //     set subject
     char *subject = strdup("LIST");
     //     send request (mailbox)
+    zsys_debug ("send smhng on ALERT");
     mlm_client_sendto(client, "ALERT", subject, NULL, 5000, &pubmsg);
     zsys_info ("LIST message sent");
     //     wait for the reply
@@ -43,37 +44,37 @@ int main(int argc, char** argv)
         exit(1);
     }
     free(subject);
-    //     Assumption: only 2 alerts can be in the system
-    char *uuid[2];
-    uuid[0] = zmsg_popstr(reply);
-    uuid[1] = zmsg_popstr(reply);
-    zsys_info ("uuid1 =%s", uuid[0]);
-    zsys_info ("uuid2 =%s", uuid[1]);
 
-    // we would play with status changing
+    zframe_t *frame = zmsg_pop (pubmsg);
+    zhashx_t *alerts = zhashx_unpack (frame);
+
+    // key - name
+    // value - status
+    for (void* it = zhashx_first (alerts); it != NULL; it = zhashx_next (alerts)) {
+        printf ("%s/%s\n", (char*) it, (char*) zhashx_cursor (alerts));
+    }
+
+    // we would play with status changing only for first alert
+    char *alert_name = (char *) zhashx_first (alerts);
+    char *alert_status = (char *) zhashx_cursor (alerts);
     while ( !zsys_interrupted )
     {
-        // randomly select what alert would be changed
-        int order = random() % 2;
-        // select subject
-        subject = uuid[order];
         // randomly select new status
         int status_number = random() % 3;
         // create message
         pubmsg = zmsg_new();
         zmsg_addstr(pubmsg, statuses[status_number]);
-        mlm_client_sendto(client, "ALERT", subject, NULL, 5000, &pubmsg);
+        mlm_client_sendto(client, "ALERT", alert_name, NULL, 5000, &pubmsg);
         // we are not going to spam :)
         sleep(2);
     }
-    free(uuid[0]);
-    free(uuid[1]);
+    zhashx_destroy (&alerts);
+    zframe_destroy (&frame);
     zmsg_destroy (&reply);
-
-client_destroy:
     free(statuses[0]);
     free(statuses[1]);
     free(statuses[2]);
+    zmsg_destroy (&reply);
     mlm_client_destroy(&client);
     return 0;
 }
