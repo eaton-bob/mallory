@@ -51,7 +51,6 @@ s_alerts (
     zpoller_t *poller = zpoller_new (pipe, msgpipe, NULL);
 
     zhashx_t *alerts = zhashx_new ();
-    zhashx_set_destructor (alerts, (zhashx_destructor_fn *) zstr_free);
 
     //bootstrap the alerts
     zhashx_insert (alerts, "upsonbattery@UPS1", "NEW");
