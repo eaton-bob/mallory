@@ -2,9 +2,9 @@
 #include <string>
 #include <sys/types.h>
 #include <unistd.h>
+#include "../streams.h"
 
 #define USAGE "<mlm_endpoint> <gen_name> <metric_name> <range>"
-#define STREAM_NAME "METRICS"
 #define FREQ 5
 
 //  Provide random number from 0..(num-1)
@@ -15,7 +15,6 @@ int main (int argc, char **argv) {
         zsys_error ("Usage: %s %s", argv[0], USAGE);
         return EXIT_FAILURE;
     }
-
     zsys_info ("mlm_endpoint: '%s'", argv[1]);
     zsys_info("gen_name: '%s'", argv[2]);
     zsys_info ("metric_name: '%s'", argv[3]);
@@ -34,7 +33,7 @@ int main (int argc, char **argv) {
     int rv = mlm_client_connect (client, argv[1], 1000, client_name.c_str ());
     assert (rv != -1);
     
-    rv = mlm_client_set_producer(client, STREAM_NAME);
+    rv = mlm_client_set_producer(client, METRICS_STREAM);
     assert (rv != -1);
 
     while (!zsys_interrupted) {

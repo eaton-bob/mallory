@@ -1,10 +1,9 @@
 #include <malamute.h>
 #include <string>
 #include <map>
+#include "../streams.h"
 
 #define USAGE "<mlm_endpoint>"
-#define ALERTS_STREAM "METRICS"
-#define EVALS_STREAM "EVALS"
 
 /*
 // TODO: To be replaced by zconfig
@@ -30,7 +29,7 @@ int main (int argc, char **argv) {
     int rv = mlm_client_connect (client, argv[1], 1000, argv[0]);
     assert (rv != -1);
 
-    rv = mlm_client_set_consumer (client, EVALS_STREAM, "");
+    rv = mlm_client_set_consumer (client, EVALS_STREAM, ".*");
     assert (rv != -1);
     rv = mlm_client_set_producer (client, ALERTS_STREAM);
     assert (rv != -1);
@@ -47,7 +46,6 @@ int main (int argc, char **argv) {
                 zsys_error ("mlm_client_send (subject = '%s') failed.", mlm_client_subject (client));
             else
                 zsys_info ("TRIGGER subject='%s'", mlm_client_subject (client));
-            zmsg_destroy (&msg);
         }
         else if (streq (mlm_client_command (client), "MAILBOX DELIVER")) {
             zsys_debug ("Not implemented yet.");
