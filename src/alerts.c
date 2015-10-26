@@ -2,7 +2,7 @@
 #include <stdlib.h>
 
 static const char *stream = "ALERTS";
-static const char *endpoint = "ipc://@/alerts";
+static const char *endpoint = "ipc://@/malamute";
 
 static void
 s_pub_alert (
@@ -72,6 +72,7 @@ s_alerts (
 
         //which == msgpipe
         zmsg_t *msg = mlm_client_recv (cl);
+        zsys_debug ("received smthng on malamute");
         if (!streq (mlm_client_command (cl), "MAILBOX DELIVER"))
             goto msg_destroy;
 
