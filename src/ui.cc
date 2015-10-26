@@ -32,11 +32,13 @@ int main(int argc, char** argv)
         exit(1);
     }
 
-    zframe_t *frame = zmsg_pop (pubmsg);
+    zmsg_print (reply);
+
+    zframe_t *frame = zmsg_pop (reply);
     zhashx_t *alerts = zhashx_unpack (frame);
 
     for (void* it = zhashx_first (alerts); it != NULL; it = zhashx_next (alerts)) {
-        printf ("%s/%s\n", (char*) it, (char*) zhashx_cursor (alerts));
+        printf ("%s/%s\n", (char*) zhashx_cursor (alerts), (char*) it);
     }
 
     zhashx_destroy (&alerts);
