@@ -1,0 +1,2 @@
+rm -f rules
+gcc -std=c++11 -lstdc++ -lczmq -lmlm evaluator.cc -o rules
