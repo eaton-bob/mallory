@@ -51,7 +51,6 @@ s_alerts (
     zpoller_t *poller = zpoller_new (pipe, msgpipe, NULL);
 
     zhashx_t *alerts = zhashx_new ();
-    zhashx_set_destructor (alerts, (zhashx_destructor_fn *) zstr_free);
 
     //bootstrap the alerts
     zhashx_insert (alerts, "upsonbattery@UPS1", "NEW");
@@ -76,29 +75,29 @@ s_alerts (
         if (!streq (mlm_client_command (cl), "MAILBOX DELIVER"))
             goto msg_destroy;
 
-        char *alert_subject = zmsg_popstr (msg);
-
         //LIST
-        if (streq (alert_subject, "LIST")) {
+        if (streq (mlm_client_subject (cl), "LIST")) {
             zsys_debug ("(%s): got command LIST", name);
 
             zmsg_t *msg = zmsg_new ();
-            zmsg_addstr (msg, "LIST");
             zframe_t *frame = zhashx_pack (alerts);
             zmsg_append (msg, &frame);
             mlm_client_sendto (cl, mlm_client_sender (cl), "LIST", NULL, 5000, &msg);
-            goto alert_subject_destroy;
+            goto msg_destroy;
         }
+
+        char *alert_subject = zmsg_popstr (msg);
+        zsys_debug ("alert_subject: %s", alert_subject);
 
         // others
         char *alert_state = zmsg_popstr (msg);
         zsys_debug ("(%s): Alert '%s' new state is '%s'", name, alert_subject, alert_state);
 
         zhashx_update (alerts, alert_subject, alert_state);
+
         //ACK
         mlm_client_sendtox (cl, mlm_client_sender (cl), alert_subject, alert_subject, "ACK");
         zstr_free (&alert_state);
-alert_subject_destroy:
         zstr_free (&alert_subject);
 msg_destroy:
         zmsg_destroy (&msg);
