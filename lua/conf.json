@@ -1,5 +1,0 @@
-{
-  "in": [ "test_a@test", "test_b@test" ],
-  "evaluation": "if(test_a_test + test_b_test > 10) then return \"Value too high\", test_a_test + test_b_test end",
-  "out": "test"
-}
