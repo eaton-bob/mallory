@@ -11,9 +11,13 @@ echo
 echo "=== Up & running ==="
 echo
 sleep 1
-./generate_measurement test test W 4
+./generate_measurement test test_a W 4
 sleep 2
-./generate_measurement test test W 10
+./generate_measurement test test_b W 4
+sleep 2
+./generate_measurement test test_a W 5
+sleep 2
+./generate_measurement test test_b W 6
 sleep 2
 echo "=== Gonna die ==="
 killall lua_poc
