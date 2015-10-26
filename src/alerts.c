@@ -46,13 +46,13 @@ s_alerts (
         if (!streq (mlm_client_command (cl), "MAILBOX DELIVER"))
             goto msg_destroy;
 
-        char *alert_name = zmsg_popstr (msg);
+        char *alert_subject = zmsg_popstr (msg);
 
         zstr_free (&alert_state);
         alert_state = zmsg_popstr (msg);
 
-        zsys_info ("%s: Alert '%s' new state is '%s'", name, alert_name, alert_state);
-        zstr_free (&alert_name);
+        zsys_info ("%s: Alert '%s' new state is '%s'", name, alert_subject, alert_state);
+        zstr_free (&alert_subject);
 msg_destroy:
         zmsg_destroy (&msg);
     }
