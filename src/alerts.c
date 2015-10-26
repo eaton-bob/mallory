@@ -7,6 +7,9 @@ static const char *endpoint = "ipc://@/alerts";
  * msg1: REQ alert_subject/state
  *       REP alert_subject/ACK
  *
+ * msg2: REQ LIST
+ *       REP LIST/zhashx_t *alerts
+ *
  * msg2 (on stream "ALERTS"):
  *      PUB alert_subject/state
  *
@@ -53,6 +56,18 @@ s_alerts (
             goto msg_destroy;
 
         char *alert_subject = zmsg_popstr (msg);
+
+        //LIST
+        if (streq (alert_subject, "LIST")) {
+            zmsg_t *msg = zmsg_new ();
+            zmsg_addstr (msg, "LIST");
+            zframe_t *frame = zhashx_pack (alerts);
+            zmsg_append (msg, &frame);
+            mlm_client_sendto (cl, mlm_client_sender (cl), "LIST", NULL, 5000, &msg);
+            goto alert_subject_destroy;
+        }
+
+        // others
         char *alert_state = zmsg_popstr (msg);
         zsys_info ("%s: Alert '%s' new state is '%s'", name, alert_subject, alert_state);
 
@@ -60,6 +75,7 @@ s_alerts (
         //ACK
         mlm_client_sendtox (cl, mlm_client_sender (cl), alert_subject, alert_subject, "ACK");
         zstr_free (&alert_state);
+alert_subject_destroy:
         zstr_free (&alert_subject);
 msg_destroy:
         zmsg_destroy (&msg);
