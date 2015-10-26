@@ -1,5 +1,7 @@
 # Executables
 generator
+consumer
+rules
 
 # Object files
 *.o

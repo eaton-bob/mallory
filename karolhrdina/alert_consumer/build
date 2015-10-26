@@ -1,2 +1,2 @@
-rm -f alert_consumer
-gcc -std=c++11 -lstdc++ -lczmq -lmlm alert_consumer.cc -o alert_consumer
+rm -f consumer
+gcc -std=c++11 -lstdc++ -lczmq -lmlm alert_consumer.cc -o consumer
