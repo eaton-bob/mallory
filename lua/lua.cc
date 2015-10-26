@@ -7,6 +7,8 @@ extern "C" {
 #include <vector>
 #include <string>
 #include <map>
+#include <iostream>
+#include <fstream>
 #include <cxxtools/jsondeserializer.h>
 
 #include "agents.h"
@@ -28,12 +30,14 @@ int main (int argc, char** argv) {
   bios_agent_t *client = bios_agent_new("ipc://@/malamute", argv[0]);
 
   // Read configuration
-  cxxtools::JsonDeserializer json(std::cin);
+  std::ifstream f("conf.json");
+  cxxtools::JsonDeserializer json(f);
   json.deserialize();
   const cxxtools::SerializationInfo *si = json.si();
   si->getMember("evaluation") >>= cfg.lua_code;
   si->getMember("in") >>= cfg.in;
   si->getMember("out") >>= cfg.out;
+
   // Subscribe to all streams
   for(auto it : cfg.in) {
     bios_agent_set_consumer(client, bios_get_stream_measurements(), it.c_str());

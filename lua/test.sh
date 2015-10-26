@@ -5,7 +5,7 @@ export LD_LIBRARY_PATH="$CORE/.libs"
 make
 malamute "$CORE"/tools/malamute.cfg &
 sleep 2
-cat conf.json | ./lua_poc &
+./lua_poc &
 sleep 1
 echo
 echo "=== Up & running ==="
