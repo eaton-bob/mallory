@@ -1,5 +1,7 @@
 #include <malamute.h>
 #include <string>
+#include <sys/types.h>
+#include <unistd.h>
 
 #define USAGE "<mlm_endpoint> <gen_name> <metric_name> <range>"
 #define STREAM_NAME "METRIC"
@@ -25,8 +27,13 @@ int main (int argc, char **argv) {
 
     mlm_client_t *client = mlm_client_new ();
     assert (client);
-    int rv = mlm_client_connect (client, argv[1], 1000, argv[2]);
+
+    // client name is appended with ".PID" 
+    std::string client_name (argv[2]);
+    client_name.append (".").append (std::to_string (getpid ()));
+    int rv = mlm_client_connect (client, argv[1], 1000, client_name.c_str ());
     assert (rv != -1);
+    
     rv = mlm_client_set_producer(client, STREAM_NAME);
     assert (rv != -1);
 
@@ -38,7 +45,7 @@ int main (int argc, char **argv) {
         if (mlm_client_send (client, argv[2], &msg) != 0)
             zsys_error ("mlm_client_send () failed.");
         else
-            zsys_info ("\t%d", value);
+            zsys_info ("\t%s = %d", argv[3], value);
         
         zclock_sleep (randof (FREQ) * 1000);
     }
