@@ -1,0 +1,2 @@
+rm -f alert
+gcc -std=c++11 -lstdc++ -lczmq -lmlm alert_producer.cc -o alert
