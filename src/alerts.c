@@ -87,20 +87,32 @@ s_alerts (
         }
 
         char *alert_subject = zmsg_popstr (msg);
+        if ( alert_subject == NULL )
+        {
+            zsys_info ("malformed message, ignore it, missing alert_subject");
+            goto msg_destroy;
+        }
         zsys_debug ("alert_subject: %s", alert_subject);
 
         // others
         char *alert_state = zmsg_popstr (msg);
+        if ( alert_state == NULL )
+        {
+            zsys_info ("malformed message, ignore it, missing alert_state");
+            goto msg_destroy;
+        }
         zsys_debug ("(%s): Alert '%s' new state is '%s'", name, alert_subject, alert_state);
 
         zhashx_update (alerts, alert_subject, alert_state);
-
+        zsys_info ("jsem tu");
         //ACK
         mlm_client_sendtox (cl, mlm_client_sender (cl), alert_subject, alert_subject, "ACK");
-        zstr_free (&alert_state);
-        zstr_free (&alert_subject);
+        zsys_info ("jsem tu1");
+        //zstr_free (&alert_state);
+        //zstr_free (&alert_subject);
 msg_destroy:
         zmsg_destroy (&msg);
+        zsys_info ("jsem tu2");
     }
 
     zhashx_destroy (&alerts);
