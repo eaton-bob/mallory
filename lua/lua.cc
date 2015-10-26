@@ -25,6 +25,8 @@ struct config {
 
 std::map<std::string, std::vector<config>> configs;
 
+std::map<zrex_t*, config> r_configs;
+
 int main (int argc, char** argv) {
   char buff[256];
   int error;
@@ -35,6 +37,7 @@ int main (int argc, char** argv) {
   cxxtools::Directory d(".");
   for(auto fn : d) {
     config cfg;
+    std::string rex;
     if(fn.length() < 5) continue;
     if(fn.compare(fn.length() - 5, 5, ".json") !=0 )
       continue;
@@ -43,7 +46,10 @@ int main (int argc, char** argv) {
     json.deserialize();
     const cxxtools::SerializationInfo *si = json.si();
     si->getMember("evaluation") >>= cfg.lua_code;
-    si->getMember("in") >>= cfg.in;
+    if(si->findMember("in"))
+      si->getMember("in") >>= cfg.in;
+    if(si->findMember("in_rex"))
+      si->getMember("in_rex") >>= rex;
     si->getMember("out") >>= cfg.out;
 
     // Subscribe to all streams & store configuration
@@ -54,6 +60,11 @@ int main (int argc, char** argv) {
         configs.insert(std::make_pair(it.c_str(), std::vector<config>({})));
       auto cit = configs.find(it.c_str());
       cit->second.push_back(cfg);
+    }
+    if(!rex.empty()) {
+      bios_agent_set_consumer(client, bios_get_stream_measurements(), rex.c_str());
+      printf("Registered to receive '%s'\n", rex.c_str());
+      r_configs.insert(std::make_pair(zrex_new(rex.c_str()), cfg));
     }
   }
 
@@ -76,6 +87,7 @@ int main (int argc, char** argv) {
     }
     ymsg_destroy(&yn);
 
+    // Handle non-regex configs
     auto top = configs.find(topic);
     for(auto cfg : configs.find(topic)->second) {
       // Compute
@@ -95,15 +107,40 @@ int main (int argc, char** argv) {
       error = luaL_loadbuffer(L, cfg.lua_code.c_str(), cfg.lua_code.length(), "line") ||
               lua_pcall(L, 0, 2, 0);
 
-      if(lua_isnumber(L, -1))
-          fprintf(stdout, "ALERT (%s = %lf), %s\n", cfg.out.c_str(), lua_tonumber(L, -1), lua_tostring(L, -2));
       if (error) {
         fprintf(stderr, "%s", lua_tostring(L, -1));
         lua_pop(L, 1);  /* pop error message from the stack */
+      } else if(lua_isnumber(L, -1)){
+        fprintf(stdout, "ALERT (%s = %lf), %s\n", cfg.out.c_str(), lua_tonumber(L, -1), lua_tostring(L, -2));
       }
 next_cfg:
       lua_close(L);
     }
+
+    // Handle regex configs
+    for(auto it : r_configs) {
+      if(!zrex_matches(it.first, topic.c_str()))
+        continue;
+      auto cfg = it.second;
+      // Compute
+      lua_State *L = lua_open();
+      lua_pushnumber(L, value);
+      lua_setglobal(L, "value");
+      lua_pushstring(L, topic.c_str());
+      lua_setglobal(L, "topic");
+      error = luaL_loadbuffer(L, cfg.lua_code.c_str(), cfg.lua_code.length(), "line") ||
+              lua_pcall(L, 0, 3, 0);
+
+      if (error) {
+        fprintf(stderr, "%s", lua_tostring(L, -1));
+        lua_pop(L, 1);  /* pop error message from the stack */
+      } else if(lua_isnumber(L, -1)) {
+        fprintf(stdout, "ALERT (%s = %lf), %s\n", lua_tostring(L, -3), lua_tonumber(L, -1), lua_tostring(L, -2));
+      }
+next_r_cfg:
+      lua_close(L);
+    }
+
   }
   bios_agent_destroy(&client);
   return 0;

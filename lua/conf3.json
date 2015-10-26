@@ -1,0 +1,5 @@
+{
+  "in_rex": ".*@test",
+  "evaluation": "if(value > 5) then return topic, topic .. \" too high\", value end",
+  "out": "test"
+}
