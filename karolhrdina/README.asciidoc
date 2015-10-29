@@ -1,0 +1,165 @@
+mallory
+=======
+
+== Description
+Proof of concept of a series of solutions to a series of problems we are facing at work. 
+
+The problem definitions are abstracted from a real world project. Any specific
+project domain knowledge is cut off and project dependencies are kept to a bare
+minimum - only https://github.com/zeromq/malamute/[malamute] is required.
+
+== Problem definition
+These are the problems we are trying to solve.  
+
+=== Problem 1
+Trigger alert based on evaluation of 1 .. N measurements.
+
+.Note:
+Here, measurement rules are hardcoded. The PoC for run-time configurable rules
+is located in https://github.com/eaton-bob/mallory/tree/master/lua[../lua]
+directory and is being investigated by miska.
+
+=== Problem 2
+Manage state of alert.
+
+User can assign state (i.e. acknowledge/un-acknowledge) that he doesn't want to
+see again.
+
+== Protocol overview
+Since https://github.com/zeromq/malamute/[malamute] is the core communication
+"technology" here, we omit boilerplate blah blah's like the need to connect to
+a given endpoint etc... 
+
+[[RFC_METRICS]]
+=== RFC_METRICS - Metrics protocol
+Connects METRIC_PRODUCER peers to METRIC_CONSUMER peers.
+
+The METRIC_PRODUCER peer registers as producer on METRICS stream.
+The METRIC_CONSUMER peer listens on METRICS stream.
+
+The protocol has one message:
+
+* metric_name/value 
+
+where '/' indicates a multipart string message and subject of the message is
+name of the device.
+
+[[RFC_EVALS]]
+=== RFC_EVALS - Evaluations protocol
+Connects EVALUATOR_PRODUCER peers to EVALUATOR_CONSUMER peers.
+
+The EVALUATOR_PRODUCER peer registers as producer on EVALS stream.
+The EVALUATOR_CONSUMER peer listens on EVALS stream.
+
+The protocol has one message:
+
+* rule_name/device 
+
+where '/' indicates a multipart string message and subject of the message is
+"<rule_name>@<device>".
+
+[[RFC_ALERT]]
+=== RFC_ALERT - Alerts protocol
+Connects ALERT_PRODUCER peers to ALERT_CONSUMER peers.
+
+The ALERT_PRODUCER peer registers as producer on ALERTS stream.
+The ALERT_CONSUMER peer listens on ALERTS stream.
+
+The protocol has one message:
+
+* alert_name/device 
+
+where '/' indicates a multipart string message and subject of the message is
+"<alert_name>@<device>".
+
+[[RFC_UI]]
+=== RFC_UI - User interface protocol
+Connects USER peer to SYSTEM peer.
+
+The USER peer sends MAILBOX message (request) to SYSTEM peer:
+
+* param1[/param\^2]...[/param\^N] 
+
+where '/' indicates a multipart string message and subject of the message contains command,
+which is one of [ LIST | ACK ].
+
+Commands:
+
+* LIST - requesting list of acknowledged alerts
+* ACK - set acknowledge state of <alert_name> to ON/OFF. Has two parameters:
+** param 1: <alert_name>
+** param 2: <state>, one of [ ON | OFF ]
+
+The SYSTEM peer send MAILBOX message (response) back to USER peer. Subject is repeated from the request message.
+For LIST command sends back 
+
+* alert\^1[/alert\^2]...[/alert\^N] or empty message if no alerts were acknowledged.
+
+For ACK command sends back
+
+* alert/ACK/state
+
+where '/' indicates a multipart string message, subject is repeated from the
+request message, 'alert' is alert name and 'state' is one of [ ON | OFF ].
+
+ 
+== Components
+
+=== metric generator
+Simple component that generates metric each 0-5 seconds, i.e. some input for our PoC.
+
+Implements METRIC_PRODUCER part of <<RFC_METRICS, Metrics protocol>>.
+
+Usage:: generator <mlm_endpoint> <gen_name> <metric_name> <range>
+
+Thus `./generator ipc://@/malamute "ups-9" "temp" "100"` produces each 1-5
+seconds a metric with name "temp", value between 0-100 and subject "ups-9".
+
+File `chained_example.sh` shows how to create a named metric producer that
+generates multiple metrics independently of each other. 
+
+=== evaluator
+Listens to metrics and based on hardcoded rules publishes an evaluation:
+
+* metric "temp" excceds 70 produces ONFIRE/device 
+* metric "hum" exceeds 50 produces CORROSION/device 
+
+Implements:
+
+* METRIC_CONSUMER part of <<RFC_METRICS, Metrics protocol>>
+* EVALUATORS_PRODUCER part of <<RFC_EVALS, Evaluatios protocol>>
+
+Usage:: rules <mlm_endpoint>
+
+=== alert producer
+Listens to evaluations and based on USER preferences triggers and maintans state of alerts.
+
+Implements:
+
+* EVALUATORS_CONSUMER part of <<RFC_EVALS, Evaluatios protocol>>
+* ALERT_PRODUCER part of <<RFC_ALERTS, Alerts protocol>>
+* SYSTEM part of <<RFC_UI, User interface protocol>> 
+
+Usage:: alert <mlm_endpoint>
+
+=== alert consumer
+Represents an abstraction of final alert consumers like SMS
+gateway, SMTP server, XMPP server and possibly many others.  The main purpose
+of this component is to receive alert and simulate some sending operation.
+
+Implements ALERT_CONSUMER part of <<RFC_ALERTS, Alerts protocol>>
+
+Usage:: consumer <mlm_endpoint> <function>
+
+Thus `./consumer ipc://@/malamute "SMS"` simulates and SMS gateway
+
+=== user interface
+
+
+Usage:: user <mlm_endpoint> [LIST | ACK <alert> [ON | OFF]]
+
+Thus
+
+* `user ipc://@/malamute LIST` will list acknowledged alerts
+* `user ipc://@/malamute ACK ONFIRE ON` will acknowledge ONFIRE alert and the alert consumer component will no longer send ONFIRE alerts.
+
