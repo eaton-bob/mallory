@@ -34,42 +34,42 @@ a given endpoint etc...
 === RFC_METRICS - Metrics protocol
 Connects METRIC_PRODUCER peers to METRIC_CONSUMER peers.
 
-The METRIC_PRODUCER peer registers as producer on METRICS stream.
+The METRIC_PRODUCER peer registers as producer on METRICS stream. +
 The METRIC_CONSUMER peer listens on METRICS stream.
 
 The protocol has one message:
 
 * metric_name/value 
 
-where '/' indicates a multipart string message and subject of the message is
+where '/' indicates a multipart string message and 'subject' of the message is
 name of the device.
 
 [[RFC_EVALS]]
 === RFC_EVALS - Evaluations protocol
 Connects EVALUATOR_PRODUCER peers to EVALUATOR_CONSUMER peers.
 
-The EVALUATOR_PRODUCER peer registers as producer on EVALS stream.
+The EVALUATOR_PRODUCER peer registers as producer on EVALS stream. +
 The EVALUATOR_CONSUMER peer listens on EVALS stream.
 
 The protocol has one message:
 
 * rule_name/device 
 
-where '/' indicates a multipart string message and subject of the message is
+where '/' indicates a multipart string message and 'subject' of the message is
 "<rule_name>@<device>".
 
 [[RFC_ALERT]]
 === RFC_ALERT - Alerts protocol
 Connects ALERT_PRODUCER peers to ALERT_CONSUMER peers.
 
-The ALERT_PRODUCER peer registers as producer on ALERTS stream.
+The ALERT_PRODUCER peer registers as producer on ALERTS stream. +
 The ALERT_CONSUMER peer listens on ALERTS stream.
 
 The protocol has one message:
 
 * alert_name/device 
 
-where '/' indicates a multipart string message and subject of the message is
+where '/' indicates a multipart string message and 'subject' of the message is
 "<alert_name>@<device>".
 
 [[RFC_UI]]
@@ -78,9 +78,9 @@ Connects USER peer to SYSTEM peer.
 
 The USER peer sends MAILBOX message (request) to SYSTEM peer:
 
-* param1[/param\^2]...[/param\^N] 
+* param_1[/param_2]...[/param_N] 
 
-where '/' indicates a multipart string message and subject of the message contains command,
+where '/' indicates a multipart string message and 'subject' of the message contains command,
 which is one of [ LIST | ACK ].
 
 Commands:
@@ -93,14 +93,15 @@ Commands:
 The SYSTEM peer send MAILBOX message (response) back to USER peer. Subject is repeated from the request message.
 For LIST command sends back 
 
-* alert\^1[/alert\^2]...[/alert\^N] or empty message if no alerts were acknowledged.
+* alert_1[/alert_2]...[/alert_N] or empty message if no alerts were acknowledged.
 
 For ACK command sends back
 
 * alert/ACK/state
 
-where '/' indicates a multipart string message, subject is repeated from the
-request message, 'alert' is alert name and 'state' is one of [ ON | OFF ].
+where '/' indicates a multipart string message, 'subject' is repeated from the
+request message, 'alert' is alert name and 'state' is one of [ ON | OFF | ERROR ].
+If 'state' is ERROR an additonal explanation string part MAY appear in the message.
 
  
 == Components
