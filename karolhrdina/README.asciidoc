@@ -9,7 +9,7 @@ project domain knowledge is cut off and project dependencies are kept to a bare
 minimum - only https://github.com/zeromq/malamute/[malamute] is required.
 
 == Problem definition
-These are the problems we are trying to solve.  
+These are the problems we are trying to solve. 
 
 === Problem 1
 Trigger alert based on evaluation of 1 .. N measurements.
@@ -24,6 +24,15 @@ Manage state of alert.
 
 User can assign state (i.e. acknowledge/un-acknowledge) that he doesn't want to
 see again.
+
+=== Problem 3
+Recognize alert has ended and send information about alert end.
+
+Before we triggered an alarm when certain conditions were met (i.e. temperature
+>= 90 C) and that was it. We want to recognize when temperature drops below 90
+again and send information about alert end.
+
+WIP
 
 == Protocol overview
 Since https://github.com/zeromq/malamute/[malamute] is the core communication
@@ -41,7 +50,7 @@ The protocol has one message:
 
 * metric_name/value 
 
-where "/" indicates a multipart string message and 'subject' of the message is
+where '/' indicates a multipart string message and 'subject' of the message is
 name of the device.
 
 [[RFC_EVALS]]
@@ -55,7 +64,7 @@ The protocol has one message:
 
 * rule_name/device 
 
-where "/" indicates a multipart string message and 'subject' of the message is
+where '/' indicates a multipart string message and 'subject' of the message is
 "<rule_name>@<device>".
 
 [[RFC_ALERT]]
@@ -69,7 +78,7 @@ The protocol has one message:
 
 * alert_name/device 
 
-where "/" indicates a multipart string message and 'subject' of the message is
+where '/' indicates a multipart string message and 'subject' of the message is
 "<alert_name>@<device>".
 
 [[RFC_UI]]
@@ -80,7 +89,7 @@ The USER peer sends MAILBOX message (request) to SYSTEM peer:
 
 * param_1[/param_2]...[/param_N] 
 
-where "/" indicates a multipart string message and 'subject' of the message contains command,
+where '/' indicates a multipart string message and 'subject' of the message contains command,
 which is one of [ LIST | ACK ].
 
 Commands:
@@ -99,7 +108,7 @@ For ACK command sends back
 
 * alert/ACK/state
 
-where "/" indicates a multipart string message, 'subject' is repeated from the
+where '/' indicates a multipart string message, 'subject' is repeated from the
 request message, 'alert' is alert name and 'state' is one of [ ON | OFF | ERROR ].
 If 'state' is ERROR an additonal explanation string part MAY appear in the message.
 
@@ -142,7 +151,6 @@ Implements:
 * ALERT_PRODUCER part of <<RFC_ALERTS, Alerts protocol>>
 * SYSTEM part of <<RFC_UI, User interface protocol>> 
 
-
 Usage:: alert <mlm_endpoint>
 
 === alert consumer
@@ -158,6 +166,7 @@ Thus `./consumer ipc://@/malamute "SMS"` simulates and SMS gateway
 
 === user interface
 Implements:
+
 * USER part of <<RFC_UI, User interface protocol>>
 
 
