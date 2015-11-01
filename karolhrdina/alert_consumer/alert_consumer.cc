@@ -38,10 +38,19 @@ int main (int argc, char **argv) {
         }
         char *alert_name = zmsg_popstr (msg);
         char *device_name = zmsg_popstr (msg);
-        assert (alert_name); assert (device_name);
-        zsys_info ("Sending alert '%s' from device '%s' using '%s'.", alert_name, device_name, function);
-        free (alert_name); free (device_name);
+        char *state = zmsg_popstr (msg);
         zmsg_destroy (&msg);
+        assert (alert_name); assert (device_name); assert (state);
+        if (streq (state, "ACTIVE")) {
+            zsys_info ("Sending %s\tALERT\t\t'%s' from device '%s'.", function, alert_name, device_name);
+        }
+        else if (streq (state, "RESOLVED")) {
+            zsys_info ("Sending %s\tBACK-to-NORMAL\t'%s' from device '%s'.", function, alert_name, device_name);
+        }
+        else {
+            zsys_warning ("Unexpected message format received from '%s'.", mlm_client_sender (client));
+        }
+        free (alert_name); free (device_name); free (state);
     }
 
     mlm_client_destroy (&client);
