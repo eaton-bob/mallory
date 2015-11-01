@@ -32,6 +32,18 @@ Before we triggered an alarm when certain conditions were met (i.e. temperature
 >= 90 C) and that was it. We want to recognize when temperature drops below 90
 again and send information about alert end.
 
+=== Problem 4
+Acknowledgement state of alert is too coarse-grained. We want to be able to
+acknowledge alert for one device while still be able to recieve that same alert
+for different device.
+
+WIP
+
+=== Problem 5
+Ability to list history of states for certain alert/device with timestamps.
+
+WIP
+
 == Protocol overview
 Since https://github.com/zeromq/malamute/[malamute] is the core communication
 "technology" here, we omit boilerplate blah blah's like the need to connect to
