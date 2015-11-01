@@ -16,7 +16,7 @@ int main (int argc, char **argv) {
         return EXIT_FAILURE;
     }
     zsys_info ("mlm_endpoint: '%s'", argv[1]);
-    zsys_info("gen_name: '%s'", argv[2]);
+    zsys_info ("gen_name: '%s'", argv[2]);
     zsys_info ("metric_name: '%s'", argv[3]);
     zsys_info ("range: '%s'", argv[4]);
 
@@ -33,7 +33,7 @@ int main (int argc, char **argv) {
     int rv = mlm_client_connect (client, argv[1], 1000, client_name.c_str ());
     assert (rv != -1);
     
-    rv = mlm_client_set_producer(client, METRICS_STREAM);
+    rv = mlm_client_set_producer (client, METRICS_STREAM);
     assert (rv != -1);
 
     while (!zsys_interrupted) {
