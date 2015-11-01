@@ -46,13 +46,15 @@ int main (int argc, char **argv) {
         if (streq (mlm_client_command (client), "STREAM DELIVER")) {
             char *alert_name = zmsg_popstr (msg);
             char *device_name = zmsg_popstr (msg);
-            assert (alert_name); assert (device_name);
+            char *state = zmsg_popstr (msg);
+            assert (alert_name); assert (device_name); assert (state);
             zmsg_destroy (&msg);
             auto search = ack.find (alert_name);
             if (search == ack.end ()) {
                 msg = zmsg_new ();
                 zmsg_addstr (msg, alert_name);
                 zmsg_addstr (msg, device_name);
+                zmsg_addstr (msg, state);
                 std::string send_subj (alert_name);
                 send_subj.append ("@").append (device_name);
                 if (mlm_client_send (client, send_subj.c_str (), &msg) != 0)
@@ -63,7 +65,7 @@ int main (int argc, char **argv) {
             else {
                 zsys_info ("Alert '%s' is acknowledged.", alert_name);
             }
-            free (alert_name); free (device_name);
+            free (alert_name); free (device_name); free (state);
         }
         else if (streq (mlm_client_command (client), "MAILBOX DELIVER")) {
             const char *subject = mlm_client_subject (client);
