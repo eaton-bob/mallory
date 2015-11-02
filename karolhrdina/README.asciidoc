@@ -37,8 +37,6 @@ Acknowledgement state of alert is too coarse-grained. We want to be able to
 acknowledge alert for one device while still be able to recieve that same alert
 for different device.
 
-WIP
-
 === Problem 5
 Ability to list history of states for certain alert/device with timestamps.
 
@@ -95,34 +93,25 @@ where '/' indicates a multipart string message, 'subject' of the message is
 === RFC_UI - User interface protocol
 Connects USER peer to SYSTEM peer.
 
-The USER peer sends MAILBOX message (request) to SYSTEM peer:
+The USER peer sends one of the following messages using MAILBOX SEND to SYSTEM peer:
 
-* param_1[/param_2]...[/param_N] 
+. LIST - request list of acknowledged alerts
+. ACK/alert/device/state - set acknowledge state of 'alert' for 'device' to 'state'
 
-where '/' indicates a multipart string message and 'subject' of the message contains command,
-which is one of [ LIST | ACK ].
+where '/' indicates a multipart string message, 'alert' is alert name, 'device'
+is device name, 'state' is one of [ ON | OFF ] and 'subject' of the message MAY
+contain the first part of the message (command).
 
-Commands:
+The SYSTEM peer MUST send the appropriate message message back to USER peer using MAILBOX SEND:
 
-* LIST - requesting list of acknowledged alerts
-* ACK - set acknowledge state of <alert_name> to ON/OFF. Has two parameters:
-** param 1: <alert_name>
-** param 2: <state>, one of [ ON | OFF ]
+. LIST/alert_1[/alert_2]...[/alert_N] or empty message if no alerts were acknowledged.
+. ACK/alert/device/state
 
-The SYSTEM peer send MAILBOX message (response) back to USER peer. Subject is repeated from the request message.
-For LIST command sends back 
+where '/' indicates a multipart string message, 'subject' MAY be repeated from the
+request message, 'alert' is alert name, 'device' is device name and 'state' is
+one of [ ON | OFF | ERROR ].  If 'state' is ERROR an additonal explanation
+string part MAY appear in the message.
 
-* alert_1[/alert_2]...[/alert_N] or empty message if no alerts were acknowledged.
-
-For ACK command sends back
-
-* alert/ACK/state
-
-where '/' indicates a multipart string message, 'subject' is repeated from the
-request message, 'alert' is alert name and 'state' is one of [ ON | OFF | ERROR ].
-If 'state' is ERROR an additonal explanation string part MAY appear in the message.
-
- 
 == Components
 
 === metric generator
@@ -188,7 +177,7 @@ Implements:
 * USER part of <<RFC_UI, User interface protocol>>
 
 
-Usage:: user <mlm_endpoint> [LIST | ACK <alert> [ON | OFF]]
+Usage:: user <mlm_endpoint> [LIST | ACK <alert> <device> [ON | OFF]]
 
 Thus
 

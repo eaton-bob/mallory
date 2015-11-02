@@ -6,15 +6,6 @@
 #define USAGE "<mlm_endpoint>"
 #define CLIENT_NAME "alert"
 
-/*
-// TODO: To be replaced by zconfig
-int load (const char *file) {
-    assert (file);
-    zfile_t *file = zfile_new ("./", file);
-}
-int save (const char *file) {
-}
-*/
 
 int main (int argc, char **argv) {
     if (argc < 2) {
@@ -36,6 +27,7 @@ int main (int argc, char **argv) {
     rv = mlm_client_set_producer (client, ALERTS_STREAM);
     assert (rv != -1);
 
+    // "<alert>@<device>" -> bool (not-used)
     std::map <std::string, bool> ack;
 
     while (!zsys_interrupted) {
@@ -44,35 +36,36 @@ int main (int argc, char **argv) {
             break;
          
         if (streq (mlm_client_command (client), "STREAM DELIVER")) {
-            char *alert_name = zmsg_popstr (msg);
-            char *device_name = zmsg_popstr (msg);
+            char *alert = zmsg_popstr (msg);
+            char *device = zmsg_popstr (msg);
             char *state = zmsg_popstr (msg);
-            assert (alert_name); assert (device_name); assert (state);
+            assert (alert); assert (device); assert (state);
             zmsg_destroy (&msg);
-            auto search = ack.find (alert_name);
+            auto search = ack.find (std::string (alert).append ("@").append (device));
             if (search == ack.end ()) {
                 msg = zmsg_new ();
-                zmsg_addstr (msg, alert_name);
-                zmsg_addstr (msg, device_name);
+                zmsg_addstr (msg, alert);
+                zmsg_addstr (msg, device);
                 zmsg_addstr (msg, state);
-                std::string send_subj (alert_name);
-                send_subj.append ("@").append (device_name);
+                std::string send_subj (alert);
+                send_subj.append ("@").append (device);
                 if (mlm_client_send (client, send_subj.c_str (), &msg) != 0)
                     zsys_error ("mlm_client_send (subject = '%s') failed.", send_subj.c_str ());
                 else
                     zsys_info ("TRIGGER subject='%s'", send_subj.c_str ());
             }
             else {
-                zsys_info ("Alert '%s' is acknowledged.", alert_name);
+                zsys_info ("Alert '%s' is acknowledged.", alert);
             }
-            free (alert_name); free (device_name); free (state);
+            free (alert); free (device); free (state);
         }
         else if (streq (mlm_client_command (client), "MAILBOX DELIVER")) {
-            const char *subject = mlm_client_subject (client);
-            assert (subject);
-            if (streq (subject, "LIST")) {
+            char *command = zmsg_popstr (msg);
+            assert (command);
+            if (streq (command, "LIST")) {
                 zmsg_destroy (&msg);
                 msg = zmsg_new ();
+                zmsg_addstr (msg, "LIST");
                 for (auto const& item : ack) {
                     zmsg_addstr (msg, item.first.c_str ());
                 }
@@ -81,41 +74,45 @@ int main (int argc, char **argv) {
                 else
                     zsys_info ("Message sent. Subject: '%s'", "LIST");
             }
-            else if (streq (subject, "ACK")) {
-                char *alert_name = zmsg_popstr (msg);
-                char *alert_status = zmsg_popstr (msg);
-                assert (alert_name); assert (alert_status);
+            else if (streq (command, "ACK")) {
+                char *alert = zmsg_popstr (msg);
+                char *device = zmsg_popstr (msg);
+                char *state = zmsg_popstr (msg);
+                assert (alert); assert (device); assert (state);
                 zmsg_destroy (&msg);
                 msg = zmsg_new ();
-                if (streq (alert_status, "ON")) {
-                    ack.emplace (std::make_pair (alert_name, true));
-                    zmsg_addstr (msg, alert_name); 
-                    zmsg_addstr (msg, "ACK"); 
+                zmsg_addstr (msg, "ACK"); 
+                if (streq (state, "ON")) {
+                    ack.emplace (std::make_pair (std::string (alert).append ("@").append (device), true));
+                    zmsg_addstr (msg, alert); 
+                    zmsg_addstr (msg, device); 
                     zmsg_addstr (msg, "ON"); 
                 }
-                else if (streq (alert_status, "OFF")) {
-                    ack.erase (alert_name);
-                    zmsg_addstr (msg, alert_name); 
-                    zmsg_addstr (msg, "ACK"); 
+                else if (streq (state, "OFF")) {
+                    ack.erase (std::string (alert).append ("@").append (device));
+                    zmsg_addstr (msg, alert); 
+                    zmsg_addstr (msg, device); 
                     zmsg_addstr (msg, "OFF");
                 }
                 else {
-                    zsys_error ("Unexpected status of alert: '%s'", alert_status); 
-                    zmsg_addstr (msg, alert_name); 
-                    zmsg_addstr (msg, "ACK"); 
+                    zsys_error ("Unexpected status of alert: '%s'", state); 
+                    zmsg_addstr (msg, alert); 
+                    zmsg_addstr (msg, device); 
                     zmsg_addstr (msg, "ERROR");
+                    zmsg_addstr (msg, std::string ("Unexpected status: ").append (state).c_str ());
                 }
                 if (mlm_client_sendto (client, "user", "ACK", NULL, 1000, &msg) != 0)
                     zsys_error ("mlm_client_sendto () failed.");
                 else
                     zsys_info ("Message sent. Subject: '%s'", "ACK"); 
-                free (alert_name); free (alert_status);
+                free (alert); free (device); free (state);
             }
             else {
-                zsys_error ("Unexpected message. Subject: '%s', Sender: '%s'", subject, mlm_client_sender (client));
+                zsys_error ("Unexpected message. First part (command): '%s', Sender: '%s'", command, mlm_client_sender (client));
                 zmsg_destroy (&msg);
                 continue;
             }
+            free (command);
         }
         else {
             zsys_error ("%s does not offer any service. Sender: '%s', Subject: '%s'.",
