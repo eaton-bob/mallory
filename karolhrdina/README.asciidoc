@@ -97,6 +97,7 @@ The USER peer sends one of the following messages using MAILBOX SEND to SYSTEM p
 
 . LIST - request list of acknowledged alerts
 . ACK/alert/device/state - set acknowledge state of 'alert' for 'device' to 'state'
+. HISTORY/alert/device - request history for alert/device
 
 where '/' indicates a multipart string message, 'alert' is alert name, 'device'
 is device name, 'state' is one of [ ON | OFF ] and 'subject' of the message MAY
@@ -106,11 +107,13 @@ The SYSTEM peer MUST send the appropriate message message back to USER peer usin
 
 . LIST/alert_1[/alert_2]...[/alert_N] or empty message if no alerts were acknowledged.
 . ACK/alert/device/state
+. HISTORY/alert/device[/entry_1]...[/entry_N]
 
 where '/' indicates a multipart string message, 'subject' MAY be repeated from the
-request message, 'alert' is alert name, 'device' is device name and 'state' is
-one of [ ON | OFF | ERROR ].  If 'state' is ERROR an additonal explanation
-string part MAY appear in the message.
+request message, 'alert' is alert name, 'device' is device name, 'entry' has
+format "<timestamp>:<log_entry>" and 'state' is one of [ ON | OFF | ERROR ].
+If 'state' is ERROR an additonal explanation string part MAY appear in the
+message. 
 
 == Components
 
@@ -177,7 +180,7 @@ Implements:
 * USER part of <<RFC_UI, User interface protocol>>
 
 
-Usage:: user <mlm_endpoint> [LIST | ACK <alert> <device> [ON | OFF]]
+Usage:: user <mlm_endpoint> [LIST | ACK <alert> <device> [ON | OFF] | HISTORY <alert> <device>]
 
 Thus
 

@@ -4,13 +4,14 @@
 #include <iostream>
 #include "../streams.h"
 
-#define USAGE "<mlm_endpoint> [LIST | ACK <alert> <device> [ON | OFF]]"
+#define USAGE "<mlm_endpoint> [LIST | ACK <alert> <device> [ON | OFF] | HISTORY <alert> <device>]"
 #define CLIENT_NAME "user"
 
 int main (int argc, char **argv) {
     if (argc < 3 ||
-        (!streq (argv[2], "LIST") && !streq (argv[2], "ACK")) ||
-        (streq (argv[2], "ACK") && argc < 6)) {
+        (!streq (argv[2], "LIST") && !streq (argv[2], "ACK") && !streq (argv[2], "HISTORY")) ||
+        (streq (argv[2], "ACK") && argc < 6) ||
+        (streq (argv[2], "HISTORY") && argc < 5)) {
         zsys_error ("Usage: %s %s", CLIENT_NAME, USAGE);
         return EXIT_FAILURE;
     }
@@ -33,6 +34,12 @@ int main (int argc, char **argv) {
        zmsg_addstr (msg, argv[3]);
        zmsg_addstr (msg, argv[4]);
        zmsg_addstr (msg, argv[5]);
+    }
+    else if (streq (argv[2], "HISTORY")) {
+       zsys_info ("alert: '%s'", argv[3]);
+       zsys_info ("device: '%s'", argv[4]);
+       zmsg_addstr (msg, argv[3]);
+       zmsg_addstr (msg, argv[4]);
     }
 
     if (mlm_client_sendto (client, "alert", argv[2], NULL, 1000, &msg) != 0) {
@@ -91,6 +98,22 @@ int main (int argc, char **argv) {
             return_value = EXIT_FAILURE;
         }
         free (alert); free (device); free (state);
+    }
+    else if (streq (command, "HISTORY")) {
+        char *alert = zmsg_popstr (msg);
+        char *device = zmsg_popstr (msg);
+        assert (alert); assert (device);
+        assert (streq (alert, argv[3])); assert (streq (device, argv[4]));
+        std::cout << "History for alert: '" << alert << "'\tdevice: '" << device << "'" << std::endl;           
+        char *message = zmsg_popstr (msg);
+        while (message) {
+            // TODO
+            // std::size_t needle = str.find(":");
+            std::cout << message << std::endl;
+            free (message);
+            message = zmsg_popstr (msg);
+        }
+        free (alert); free (device); 
     }
     else {
         std::cerr << "Wrong response." << std::endl;

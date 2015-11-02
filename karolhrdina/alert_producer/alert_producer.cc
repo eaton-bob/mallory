@@ -1,6 +1,7 @@
 #include <malamute.h>
 #include <string>
 #include <map>
+#include <vector>
 #include "../streams.h"
 
 #define USAGE "<mlm_endpoint>"
@@ -29,6 +30,8 @@ int main (int argc, char **argv) {
 
     // "<alert>@<device>" -> bool (not-used)
     std::map <std::string, bool> ack;
+    // "<alert>@<device>" -> vector ("<timestamp>:<event>")
+    std::map <std::string, std::vector <std::string>> hist;
 
     while (!zsys_interrupted) {
         zmsg_t *msg = mlm_client_recv (client);
@@ -41,6 +44,16 @@ int main (int argc, char **argv) {
             char *state = zmsg_popstr (msg);
             assert (alert); assert (device); assert (state);
             zmsg_destroy (&msg);
+            // see if we have entry for <alert>@<device> in hist 
+            auto hist_it = hist.find (std::string (alert).append ("@").append (device));
+            if (hist_it == hist.end ()) {
+                bool inserted;
+                std::tie (hist_it, inserted) = hist.emplace (std::make_pair (std::string (alert).append ("@").append (device), std::initializer_list<std::string> {}));
+            }
+            int64_t monots = zclock_mono ();
+            // add event into hist
+            hist.at (std::string (alert).append ("@").append (device)).push_back (std::string (std::to_string (monots).append (":").append (state)));
+            
             auto search = ack.find (std::string (alert).append ("@").append (device));
             if (search == ack.end ()) {
                 msg = zmsg_new ();
@@ -80,6 +93,16 @@ int main (int argc, char **argv) {
                 char *state = zmsg_popstr (msg);
                 assert (alert); assert (device); assert (state);
                 zmsg_destroy (&msg);
+
+                auto hist_it = hist.find (std::string (alert).append ("@").append (device));
+                if (hist_it == hist.end ()) {
+                    bool inserted;
+                    std::tie (hist_it, inserted) = hist.emplace (std::make_pair (std::string (alert).append ("@").append (device), std::initializer_list<std::string> {}));
+                }
+                int64_t monots = zclock_mono ();
+                // add event into hist
+                hist.at (std::string (alert).append ("@").append (device)).push_back (std::string (std::to_string (monots).append (":").append (state)));
+
                 msg = zmsg_new ();
                 zmsg_addstr (msg, "ACK"); 
                 if (streq (state, "ON")) {
@@ -106,6 +129,27 @@ int main (int argc, char **argv) {
                 else
                     zsys_info ("Message sent. Subject: '%s'", "ACK"); 
                 free (alert); free (device); free (state);
+            }
+            else if (streq (command, "HISTORY")) {
+                char *alert = zmsg_popstr (msg);
+                char *device = zmsg_popstr (msg);
+                assert (alert); assert (device);
+                zmsg_destroy (&msg);
+                msg = zmsg_new ();
+                zmsg_addstr (msg, "HISTORY"); 
+                zmsg_addstr (msg, alert); 
+                zmsg_addstr (msg, device); 
+                auto hist_it = hist.find (std::string (alert).append ("@").append (device));
+                if (hist_it != hist.end ()) {
+                    for (auto const& item : hist.at (std::string (alert).append ("@").append (device))) {
+                        zmsg_addstr (msg, item.c_str ());
+                    }
+                }
+                if (mlm_client_sendto (client, "user", "HISTORY", NULL, 1000, &msg) != 0)
+                    zsys_error ("mlm_client_sendto () failed.");
+                else
+                    zsys_info ("Message sent. Subject: '%s'", "ACK"); 
+                free (alert); free (device);
             }
             else {
                 zsys_error ("Unexpected message. First part (command): '%s', Sender: '%s'", command, mlm_client_sender (client));
