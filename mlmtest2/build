@@ -1,0 +1,5 @@
+#!/bin/bash
+rm -f consumer producer
+gcc -std=c++11 -lstdc++ -lmlm -lczmq -DWITH_POLLER=1 consumer.cc -o consumer
+gcc -std=c++11 -lstdc++ -lmlm -lczmq producer.cc -o producer
+
