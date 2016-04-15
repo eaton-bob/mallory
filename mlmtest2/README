@@ -1,0 +1,31 @@
+# Test case Nr. 2 for malamute - Work in progress
+
+Protocol
+
+Producer sends message
+* COMPUTE/from/to/repeat - Perform magic computation, optionally repeat it
+where / means multipart string message, 'from', 'to' and 'repeat' is
+a string-encoded unsigned integer, 'repeat' is optional
+
+Consumer replies with one of the following messages
+* RESULT/float
+* ERROR/reason
+where /means multipart string message ...
+
+USAGE (aim)
+Lock the main thread with cpu intensive task to (dis)validate the hypotesis
+that it blocks the hearbeat thread of malamute thus disconnecting consumer 
+from broker
+
+in separate consoles run
+malamute malamute.cfs
+consumer
+producer <from> <to> <repeat>
+(e.g.: ./producer 1 2000000000 2 takes ~5 seconds for good measure)
+
+or write a wrapper shell script
+
+TODO
+create actor function in producer and simultaneously create producers from code,
+it's tedious to do from console
+
