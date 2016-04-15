@@ -1,0 +1,8 @@
+# Test case for malamute
+
+It does
+    1. start mlm broker
+    2. start producer client - produces messages in a high volume
+    3. start consumer client - process the message, processing is CPU intensive
+
+run ./r to build and run
