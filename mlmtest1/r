@@ -1,0 +1,5 @@
+#!/bin/sh
+
+set -x
+cc -ggdb -std=c11 -lmlm -lczmq mlm-test.c -o mlm-test
+exec ./mlm-test
