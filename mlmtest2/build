@@ -1,5 +1,6 @@
 #!/bin/bash
-rm -f consumer producer
+rm -f consumer producer producer_stream
 gcc -std=c++11 -lstdc++ -lmlm -lczmq -DWITH_POLLER=1 consumer.cc -o consumer
 gcc -std=c++11 -lstdc++ -lmlm -lczmq producer.cc -o producer
+gcc -std=c++11 -lstdc++ -lmlm -lczmq producer2.cc -o producer_stream
 

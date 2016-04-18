@@ -41,7 +41,7 @@ s_error_reply (mlm_client_t *client, const char *reason) {
     
     int rv = mlm_client_sendto (client, mlm_client_sender (client), "", NULL, 1000, &message);
     if (rv != 0)
-        zsys_error ("mlm_clien_sendto (address = '%s', timeout = '1000') failed.", mlm_client_sender (client));
+        zsys_error ("mlm_client_sendto (address = '%s', timeout = '1000') failed.", mlm_client_sender (client));
     zmsg_destroy (&message);
 }
 
@@ -139,6 +139,7 @@ int main () {
 
     int rv = mlm_client_connect (consumer, ENDPOINT, 2000, "consumer");
     assert (rv >= 0);
+    rv = mlm_client_set_consumer (consumer, "TESTSTREAM", ".*");
 
 #ifdef WITH_POLLER    
     // This is just to simulate the agent setup as closely as possible
