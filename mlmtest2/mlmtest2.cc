@@ -262,6 +262,7 @@ s_consumer (zsock_t *pipe, void *args)
             break;
         }
         s_handle_mailbox (consumer, &msg);
+        zmsg_destroy (&msg);
 
     }
 
