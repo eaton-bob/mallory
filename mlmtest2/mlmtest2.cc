@@ -7,7 +7,7 @@
 
 static const uint64_t FROM=1;
 static const uint64_t TO=100000000;
-static const uint64_t REPEAT=20000;
+static const uint64_t REPEAT=2;
 static const char* ENDPOINT = "ipc://@/mlm-test-2";
 
 static void
@@ -151,11 +151,11 @@ s_compute (uint64_t from, uint64_t to, uint64_t repeat) {
                 result = result / i;
         }
         final_result += result;
-        zsys_debug ("result == '%s', final_result == '%s'",
+        zsys_debug ("s_consumer: result == '%s', final_result == '%s'",
                 std::to_string (result).c_str (), std::to_string (final_result).c_str ());
     }
     final_result = final_result / repeat;
-    zsys_debug ("final_result == '%s'", std::to_string (final_result).c_str ());
+    zsys_debug ("s_consumer: final_result == '%s'", std::to_string (final_result).c_str ());
     return final_result;
 }
 
@@ -217,8 +217,10 @@ s_handle_mailbox (mlm_client_t *client, zmsg_t **message_p) {
     zmsg_addstr (reply, "RESULT");
     zmsg_addstr (reply, std::to_string (result).c_str ());
 
+    /*
     // IMPORTANT: Here, just after the long calculation, let's check mlm_client_connected
     zsys_info ("Am i still connected? %s", mlm_client_connected (client) ? "YES" : "NO");
+    */
 
     rv = mlm_client_sendto (client, mlm_client_sender (client), "", NULL, 1000, &reply);
     if (rv != 0)
@@ -234,6 +236,7 @@ s_consumer (zsock_t *pipe, void *args)
     int rv = mlm_client_connect (consumer, ENDPOINT, 2000, "consumer");
     assert (rv >= 0);
     rv = mlm_client_set_consumer (consumer, "TESTSTREAM", ".*");
+    mlm_client_set_verbose (consumer, true);
 
     zpoller_t *poller = zpoller_new (pipe, mlm_client_msgpipe (consumer), NULL);
     assert (poller);
@@ -252,6 +255,7 @@ s_consumer (zsock_t *pipe, void *args)
         }
 
         zmsg_t *msg = mlm_client_recv (consumer);
+        zsys_error ("s_consumer: receiver message, command: %s", mlm_client_command (consumer));
         if (!msg) {
             if (!zsys_interrupted)
                 zsys_error ("s_consumer: mlm_client_recv () returned NULL while zsys_interrupted == false.");
@@ -270,6 +274,7 @@ int main ()
 {
     zactor_t *server = zactor_new (mlm_server, (void*) "Malamute");
     zstr_sendx (server, "BIND", ENDPOINT, NULL);
+    zstr_sendx (server, "VERBOSE", NULL);
 
     zactor_t *producer = zactor_new (s_producer, NULL);
     zactor_t *producer_stream = zactor_new (s_producer_stream, NULL);
